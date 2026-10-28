@@ -1,0 +1,140 @@
+{
+ "judge": "1",
+ "seed": 20261017,
+ "answers": {
+  "building_03": {
+   "scoreA": 3,
+   "scoreB": 3,
+   "pref": "A"
+  },
+  "building_01": {
+   "scoreA": 4,
+   "scoreB": 4,
+   "pref": "B"
+  },
+  "rural_08": {
+   "scoreA": 4,
+   "scoreB": 4,
+   "pref": "B"
+  },
+  "rural_03": {
+   "scoreA": 4,
+   "scoreB": 3,
+   "pref": "tie"
+  },
+  "rural_06": {
+   "scoreA": 5,
+   "scoreB": 5,
+   "pref": "B"
+  },
+  "scene_01": {
+   "scoreA": 3,
+   "scoreB": 3,
+   "pref": "tie"
+  },
+  "scene_04": {
+   "scoreA": 2,
+   "scoreB": 2,
+   "pref": null
+  },
+  "scene_05": {
+   "scoreA": 3,
+   "scoreB": 3,
+   "pref": "tie"
+  },
+  "portrait_06": {
+   "scoreA": 4,
+   "scoreB": 4,
+   "pref": "A"
+  },
+  "portrait_05": {
+   "scoreA": 5,
+   "scoreB": 4,
+   "pref": "B"
+  },
+  "portrait_02": {
+   "scoreA": 4,
+   "scoreB": 3,
+   "pref": "A"
+  },
+  "portrait_04": {
+   "scoreA": 4,
+   "scoreB": 3,
+   "pref": "tie"
+  }
+ },
+ "meta": [
+  {
+   "id": "building_03",
+   "cat": "building",
+   "A_is_repair": false,
+   "B_is_repair": true
+  },
+  {
+   "id": "building_01",
+   "cat": "building",
+   "A_is_repair": false,
+   "B_is_repair": true
+  },
+  {
+   "id": "rural_08",
+   "cat": "rural",
+   "A_is_repair": false,
+   "B_is_repair": true
+  },
+  {
+   "id": "rural_03",
+   "cat": "rural",
+   "A_is_repair": true,
+   "B_is_repair": false
+  },
+  {
+   "id": "rural_06",
+   "cat": "rural",
+   "A_is_repair": false,
+   "B_is_repair": true
+  },
+  {
+   "id": "scene_01",
+   "cat": "scene",
+   "A_is_repair": true,
+   "B_is_repair": false
+  },
+  {
+   "id": "scene_04",
+   "cat": "scene",
+   "A_is_repair": true,
+   "B_is_repair": false
+  },
+  {
+   "id": "scene_05",
+   "cat": "scene",
+   "A_is_repair": true,
+   "B_is_repair": false
+  },
+  {
+   "id": "portrait_06",
+   "cat": "portrait",
+   "A_is_repair": false,
+   "B_is_repair": true
+  },
+  {
+   "id": "portrait_05",
+   "cat": "portrait",
+   "A_is_repair": false,
+   "B_is_repair": true
+  },
+  {
+   "id": "portrait_02",
+   "cat": "portrait",
+   "A_is_repair": true,
+   "B_is_repair": false
+  },
+  {
+   "id": "portrait_04",
+   "cat": "portrait",
+   "A_is_repair": false,
+   "B_is_repair": true
+  }
+ ]
+}

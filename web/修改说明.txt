@@ -1,0 +1,113 @@
+# web 目录修改说明
+
+## 修改时间
+2026-10-28
+
+## 修改原因
+阶段 6 任务 6.3 落地：建立 Vue3 + Vite 前端工程，交付「首页（精选英雄影像轮播）」，并定下红色基因主题基调（学习强国风格）。
+
+## 技术栈（已确认）
+Vue3 + Vite + vue-router；不使用第三方 UI 库，样式全部手写（4/8px 间距体系，160/240ms 过渡，375px 起响应式）。
+
+## 新增文件
+- package.json / vite.config.js / index.html   工程配置（含开发期后端代理）
+- src/main.js               应用入口
+- src/router/index.js       路由（首页 + 修复对比/时空对话/史料检索占位）
+- src/api/index.js          后端 API 封装（原生 fetch）
+- src/styles/theme.css      设计令牌：配色 / 间距 / 字号 / 空·加载·错误态 / 骨架屏
+- src/App.vue               应用壳：吸顶导航 + 布局 + 页脚免责声明
+- src/views/Home.vue        首页：首屏引导 + 英雄轮播 + 三大特性
+- src/components/ComingSoon.vue  占位页（6.4~6.6 落地后替换）
+
+## 如何预览
+1) 后端：python -m uvicorn main:app --app-dir server --host 0.0.0.0 --port 8000
+2) 前端：cd web && npm install && npm run dev  →  浏览器打开 http://localhost:5173
+
+## 验证结果
+浏览器实测：品牌标识 + 4 导航项、首屏大标题「想再看一次英雄的脸吗」、英雄卡轮播（标准像正常加载）、页脚「AI 演绎」声明，均正常；无 JS 报错 / 页面空白 / 图片裂图。
+
+## 2026-10-28 补充：首页背景图接入
+- 首屏 Hero：接入 AI 生成暗红做旧胶片纹理 hero-texture.png，作为 Hero 区完整背景图（cover 铺满 + 极淡暗罩保证白字可读）。
+- 「精选英雄影像」区域：接入 AI 生成旧纸山水 archive-placeholder.png，作为整块区域背景（直接原样显示，不叠白蒙版）。
+- 页脚免责声明补「页面背景与装饰由 AI 生成」（合规：AIGC 来源透明）。
+- 验证：浏览器实测纹理质感明显、文字清晰、无报错 / 裂图。
+
+## 2026-10-28 补充：6.4 修复对比展厅落地（/restore）
+- 修改 `src/router/index.js`：将 `/restore` 由 ComingSoon 占位页替换为真实页面 Restore.vue。
+- 新增 `src/views/Restore.vue`：展厅页，含三块内容——
+  1) 英雄选择：预置 5 人，仅「有修复中间图」的吉鸿昌/杨靖宇/彭雪枫可选，杨贵/焦裕禄显示「整理中」；
+  2) 六步修复「苏醒」动画：逐帧展示 /api/heroes/{id}/frames 返回的 8 帧（原图→去网纹→划痕补全→超分→人脸精修→上色→考据校色→成片），4/8px 内 650ms/帧自动播放，可暂停/点击步骤跳帧；
+  3) 前后对比滑块：before=00_input（原图）、after=07_dewhite（成片），用 clip-path inset 裁切 + 透明 range 滑块实现拖动分割线，含「修复前/修复后」角标。
+- 沿用 theme.css 设计令牌（BEM 命名、深红/金点缀、状态态齐全），无第三方 UI 库。
+- 验证：浏览器实测 6 项全通过——页头/英雄选择/动画逐帧播放且自动停止/滑块拖动/切换英雄，均正常；无 JS 报错 / 裂图 / 404。
+
+## 2026-10-28 补充：6.5 时空对话页落地（/dialogue）
+- 修改 `src/router/index.js`：将 `/dialogue` 由 ComingSoon 占位页替换为真实页面 Dialogue.vue。
+- 新增 `src/views/Dialogue.vue`：时空对话页，含——
+  1) 英雄选择：仅可讲解英雄（有库内标准像）吉鸿昌/杨靖宇/彭雪枫可选；
+  2) 左栏「讲解画面」：标准像（portrait_url，竖图）+「AI 演绎」角标 + 讲解词字幕 + 原生 <audio> 播放器；
+  3) 右栏「事迹卡」：按 /api/deeds/{id} 分组（核心事迹 title + 若干 item），每条 item 带「播放讲解」按钮，点击调 /api/dialogue/narrate 生成 TTS 音频并高亮当前条目；
+  4) 底部「引用出处」：列出 sources 权威史料。
+- 讲解词（captions）由后端 build_narration 生成（英雄名+事迹标题+条目正文），音频先行返回、视频后台异步合成（本页不轮询视频状态）。
+- 沿用 theme.css 设计令牌，无第三方 UI 库。
+- 验证：浏览器实测 7 项全通过——页头/英雄选择/讲解画面+AI演绎角标/事迹卡分组/引用出处/点击播放讲解（TTS 成功合成并播放出 wav）/切换英雄，均正常；无 JS 报错 / 404 / 500 / 裂图。
+
+## 2026-10-28 补充：6.6 史料检索页落地（/archive）
+- 修改 `src/router/index.js`：将 `/archive` 由 ComingSoon 占位页替换为真实页面 Archive.vue。
+- 新增 `src/views/Archive.vue`：史料检索页，含——
+  1) 提问区：输入框 + 「提问」按钮 + 4 个示例问题（吉鸿昌/杨靖宇/彭雪枫/焦裕禄，支持快捷键 Enter 提交）；
+  2) 「答案」卡片：回显问题 + 答案正文（white-space:pre-wrap 保留 DeepSeek 多行回答与 [n] 引用编号）；
+  3) 「引用出处」卡片：按 citations 编号 [1][2]… 列出权威出处；
+  4) 「命中史料」卡片：展示 retrieved 每条（人物/章节/相似度百分比/史料原文）。
+- 调用 /api/rag/ask（POST），含加载态（首次加载检索模型可能稍慢）、空态、错误态。
+- 沿用 theme.css 设计令牌，无第三方 UI 库。
+- 验证：浏览器实测 6 项全通过——页头/输入框+示例问题/点击提问出加载态与答案/引用出处/命中史料/无报错接口不 500，均正常；无 JS 报错 / 404 / 500。
+
+## 2026-10-28 补充：智能对话功能（DeepSeek 流式 + 可切换人设 + 双入口）
+- 新增 `src/components/ChatBox.vue`：可复用聊天组件——人设切换（通用助手 + has_portrait 各英雄，由 /api/heroes 动态加载）、消息气泡（用户右/助手左）、流式逐字渲染（onDelta 追加）、Enter 发送、「停止」中断（AbortController）、自动滚动、欢迎语随人设变化。
+- 新增 `src/views/Chat.vue`：智能对话页（页头 + ChatBox 卡片）。
+- 修改 `src/router/index.js`：新增 /chat 路由（title「智能对话」）。
+- 修改 `src/api/index.js`：新增 `chatStream(payload, {onDelta,onError,onDone,signal})`，用 fetch + ReadableStream 解析 SSE（`data:` 行、`\n\n` 分帧）。
+- 修改 `src/App.vue`：
+  1) 顶部导航新增「对话」链接；
+  2) 右下角新增全局浮动气泡按钮 + 浮层面板（复用 ChatBox，独立会话，可展开/收起）。
+- 合规：页头与页脚已标注 AI 生成 / 内容以权威史料为准；人设口吻由后端 system prompt 约束不编造史实。
+- 验证：浏览器实测全通过——顶部导航 5 链接 + 右下角悬浮按钮双入口；/chat 流式逐字（代码级 onDelta，DeepSeek 响应快视觉打字机不明显）；切换「吉鸿昌」后第一人称口吻变化；浮层面板开关正常；无业务 500 / JS 报错（仅 1 个 Vite HMR 切换导致的 ERR_ABORTED，非功能问题）。
+
+## 2026-10-28 补充：史料检索页联网/知识兜底来源标注（/archive）
+- 修改 `src/views/Archive.vue`：根据 /api/rag/ask 新增的 `web` / `fallback` 字段，在答案卡片内显式标注来源属性——
+  1) `web=true` 时显示「以下内容来自联网检索，未经人工核验，仅供了解参考」，并新增「联网来源」卡片列出各 web_sources（标题链接 + 摘要）；
+  2) `fallback=true` 时显示「以下内容由 AI 基于自身知识生成，未经权威史料核验，仅供了解参考」；
+  3) 常规素材库命中（二者皆 false）沿用原「引用出处 + 命中史料」展示，不显示兜底标注。
+- 新增 CSS：`.answer__notice`（警示条）、`.webs__*`（联网来源卡片样式），均沿用 theme.css 设计令牌。
+- 合规：AIGC 来源透明——联网结果与知识兜底结果均打「未经核验」标记，不伪装成权威史料。
+- 验证：curl「雷锋是谁？」走知识兜底分支（fallback=true），前端按 fallback 分支渲染警示条；素材库命中问题（如焦裕禄）仍走常规出处展示。
+
+## 2026-10-28 补充：修复对比页「我的照片」上传修复 + 照片背后的故事
+- 修改 `src/views/Restore.vue`：改造为双标签页——
+  1) 「英雄影像」= 原有英雄浏览功能原样保留；
+  2) 「我的照片」（新增）：点击/选择上传老照片（本地预览）+ 身份下拉（不确定/普通照片 或 库内英雄，选英雄后端按史料考据校色）→ 「开始修复」→ 2s 轮询任务状态（排队中/修复中/完成/失败，失败可重试）；
+  3) 修复完成后，「六步苏醒动画 + 前后对比滑块」与英雄模式共用同一舞台（activeFrames computed 按模式切换数据源，切 tab 自动重置动画与滑块）；
+  4) 新增「照片背后的故事」卡片：填写照片人物姓名（datalist 提示库内英雄名，Enter 可提交）→ 调 POST /api/story：
+     - 收录：金黄警示条「以下内容依据平台史料库整理，由 AI 讲述」+ 故事正文（pre-wrap 保留 [n] 引用）+ 史料出处列表；
+     - 未收录：明确提示「史料库暂未收录，平台只讲有史料依据的故事，不编造内容」，引导核对姓名或前往史料检索页。
+- 修改 `src/api/index.js`：新增 `uploadRestore(file, heroId)`（FormData 上传，独立 fetch 避免覆盖 multipart boundary）、`restoreStatus(taskId)`（轮询）、`photoStory(name)`（故事）。
+- 合规：故事只来自史料库（后端双重校验），前端显式标注「由 AI 讲述」；上传照片仅用于本地修复演示（页面已声明）。
+- 验证：后端 curl 双分支通过（「我爷爷」拒讲 / 「杨靖宇将军」带 4 条出处讲述）；curl 真实上传一张老照片跑完整修复流水线 → done，产出 8 帧 + 成片（/steps/upload_*/07_dewhite.png 可访问）；前端 Vite 热更新后 /restore 200。
+- 补充修正：`activeFrames` 过滤掉 `url` 为空的帧——普通照片未选英雄身份时不执行「考据校色」步骤（06_calib 不产出），避免六步动画出现空白帧；未执行的工序不展示。
+- Bug 修复：上传卡片中 `<input type="file">` 原写在 `v-if` 按钮与 `<template v-else>` 之间，隔断了 v-if/v-else 的相邻关系，导致 Vue 编译报「Codegen node is missing for element/if/for node」、整页打不开。已将 input 移到 v-if 之前（常驻隐藏，供 ref 调用）。验证：compiler-sfc 编译 0 错误，Vite 请求 /src/views/Restore.vue 返回编译后 JS（200），/restore 页面恢复。
+- 体验优化：用户反馈「找不到上传入口」——模式切换条由白底细下划线改为居中胶囊按钮组（浅红底圆角容器 + 激活态深红填充白字），提高「我的照片」入口可发现性。验证：编译 0 错误，/restore 200。
+
+## 2026-10-28 布局改版：「修复对比」→「修复照片」，左右双栏
+- 用户需求：导航改名「修复照片」；页面左侧放英雄形象、右侧放用户照片修复，两栏并排不再用 tab 切换。
+- 修改 `src/views/Restore.vue`：
+  1) 去掉 tabsbar 模式切换，改为 `.duo` 左右双栏 grid（≤1024px 自动变上下堆叠）；
+  2) 左栏「英雄影像」：col-head + 英雄 chips + 六步苏醒动画卡 + 前后对比滑块卡（原 hero 模式内容，动画/滑块状态更名为 heroAnimIndex / heroSliderPos）；
+  3) 右栏「修复我的照片」：col-head + 上传卡片 + 修复完成后依次显示「我的前后对比」滑块卡（mySliderPos）、「修复过程」缩略图卡（大图 + 可点击缩略图行，myStepIndex 切换）、「照片背后的故事」卡；
+  4) 状态彻底分离：hero 一套（heroFrames/heroAnimIndex/heroSliderPos），mine 一套（myFrames/mySliderPos/myStepIndex），互不干扰。
+- 修改 `src/App.vue`：导航「修复对比」→「修复照片」。
+- 修改 `src/router/index.js`：路由 meta.title →「修复照片」。
+- 修改 `src/views/Home.vue`：首页入口按钮「查看修复对比」→「去修复照片」。
+- 验证：Restore.vue / Home.vue / App.vue 三个 SFC compiler-sfc 编译 0 错误；Vite 已服务新版（UTF-8 解码确认「修复照片 / 英雄影像 / 修复我的照片 / 上传您的老照片 / 我的前后对比 / 照片背后的故事」全部存在）。
+- 布局比例调整（用户要求 1:3）：`.duo` 由 1fr 1fr 改为 1fr 3fr（左栏英雄影像 1/4，右栏用户照片 3/4）；为保持美观做了三项适配——① 右栏修复完成后「我的前后对比」与「修复过程」两卡改为 `.mine-pair` 内部两列并排（避免 3:4 竖图在宽栏下单张过高），故事卡独立全宽；② 左栏窄列下六步动画步骤条隐藏文字标签只留圆点（当前步骤名仍由角标显示）；③ ≤1024px 时 duo 与 mine-pair 均回落单列堆叠。验证：编译 0 错误，Vite 已服务新版（133KB，含 mine-pair 样式）。
+- 布局回退（用户要求改回、英雄影像与上传照片分开）：撤销左右双栏（1:3），恢复「胶囊标签页」切换模式——顶部居中胶囊按钮组「英雄影像 / 修复我的照片」，一次只显示一种；展示区（六步动画 + 前后对比滑块）由两种模式共用同一舞台（activeFrames 按 mode 切换 heroFrames / myFrames，切模式时重置动画与滑块）；上传卡与故事卡仅在「修复我的照片」模式下显示，故事卡在修复完成后出现。保留的优化：input 位置修复（v-if 相邻性）、空帧过滤、胶囊样式。验证：编译 0 错误，Vite 已服务新版（英雄影像/修复我的照片/上传您的老照片/照片背后的故事/tabs__btn 全部确认存在）。

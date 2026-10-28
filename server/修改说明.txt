@@ -1,0 +1,65 @@
+# server 目录修改说明
+
+## 修改时间
+2026-10-28
+
+## 修改原因
+阶段 6（平台组装 M4）任务 6.1 / 6.2 落地：搭建 FastAPI 后端，对外提供「修复 / 问答 / 对话」三大 API，供 Vue3 前端调用。
+
+## 新增文件
+- main.py            后端入口：三大 Router 组装 + 静态资源托管 + CORS + 健康检查
+- config.py          全局配置：路径常量 + 英雄注册表 + 史料事迹解析 + 讲解词合成
+- tasks.py           异步任务管理（task_id → queued / running / done / failed）
+- api/__init__.py    包标记
+- api/restoration.py 修复 API：英雄列表 / 六步中间图 / 自由上传异步修复
+- api/rag.py         问答 API：复用 knowledge/rag.py（检索 + DeepSeek 生成）
+- api/dialogue.py    对话 API：事迹卡 + 讲解（TTS 音频先行、视频后台异步）
+
+## 核心设计（对应任务清单 6.0 决策）
+- 讲解画面固定用库内英雄标准像（07_dewhite.png），与用户上传照片解耦（A3-1）
+- 事迹列表直读史料库 corpus/*.txt，不经过 LLM（A2）
+- 上传身份用下拉（英雄 5 人 + 不确定），修复走子进程 pipeline.py（A5）
+- 视频后台异步合成，音频 / 字幕先行返回（A3 / A4）
+
+## 启动方式（guangying 环境，在 guangying/ 目录）
+python -m uvicorn main:app --app-dir server --host 0.0.0.0 --port 8000
+
+## 验证结果
+- GET  /api/health              → {"status":"ok"}
+- GET  /api/heroes              → 5 英雄（吉鸿昌/杨靖宇/彭雪枫有标准像；杨贵/焦裕禄待补）
+- GET  /api/heroes/yangjingyu/frames → 8 帧修复中间图（原图 + 六步 + 成片）
+- GET  /api/deeds/jiaoyulu      → 焦裕禄 6 条事迹卡 + 4 条出处
+- POST /api/rag/ask             → 答案 + 4 条出处引用 + 命中史料
+- 静态资源 /steps、/out、/uploads、/opening.jpg 均返回 200
+
+## 2026-10-28 补充：新增流式对话接口（/api/chat）
+- 新增 `api/chat.py`：POST /api/chat，body `{persona, messages}`（多轮上下文），返回 text/event-stream（SSE 流式，逐段 `data:{"delta":...}`，结束 `data:{"done":true}`）。
+- 复用 DeepSeek（DEEPSEEK_API_KEY / MODEL / BASE_URL），`stream=true` 逐 token 转发；网络异常降级为 `data:{"error":...}`，不再 500。
+- 人设 system prompt：
+  - `general` = 通用红色历史问答助手（庄重、不编造、不确定建议查证）；
+  - `<hero_id>` = config.HEROES 中 has_portrait 英雄的第一人称口吻（英雄名/生卒/称号 + 史实约束）。
+- 修改 `main.py`：`from api import chat` + `app.include_router(chat.router)` 完成路由注册。
+- 验证：curl 实测 /api/chat 流式逐字输出正常（delta + done）；前端浏览器实测流式/人设切换/双入口均通过。
+
+## 2026-10-28 补充：史料检索「联网兜底 + DeepSeek 知识兜底」三级策略
+- 修改 `api/rag.py` 的 `/api/rag/ask`：素材库检索 top1 相似度低于阈值 WEB_THRESHOLD=0.5 时，追加两级兜底——
+  1) 受限联网：调 `knowledge/search.py` 的 `web_search()`（博查 Bocha，白名单权威源 people.com.cn/12371.cn/gov.cn/xinhuanet.com），命中则用印证 system prompt 生成带「以下内容来自联网检索，未经人工核验」标注的回答；
+  2) 知识兜底：联网不可达（当前网络环境 HTTPS 被阻断）时，改用 DeepSeek 自身知识回答，system prompt 强制开头写「以下内容由 AI 基于自身知识生成，未经权威史料核验，仅供了解参考」、结尾建议查权威党史资料。
+- 返回结构新增 `web`（是否联网）、`web_sources`（联网来源数组）、`fallback`（是否知识兜底）三个字段，便于前端差异化标注。
+- 合规：三条路径均显式标注来源属性与「未核验」，不编造史实、回指权威史料。
+- 验证：curl 问「雷锋是谁？」返回 `"fallback": true`，答案开头含「未经权威史料核验」、结尾建议人民网/共产党员网；素材库命中路径不受影响。
+
+## 2026-10-28 补充：照片修复「我的照片」上传 + 照片背后的故事（POST /api/story）
+- 修改 `api/restoration.py`：
+  1) `/api/restore`（自由上传异步修复）此前已具备，本次无改动，由前端补入口；
+  2) 新增 `POST /api/story`「照片背后的故事」——用户上传照片修复完成后，填写照片人物姓名，后端先查史料库再决定是否讲述：
+     - 检索：复用 `api/rag.py` 的进程内索引缓存（`_ensure_loaded`）与 `knowledge/rag.py` 的 `retrieve`；
+     - 双重校验防误命中：命中 chunk 的 `person` 字段须与用户输入互相包含（兼容「杨靖宇将军」这类带称谓的输入），且 top1 相似度须 ≥ WEB_THRESHOLD(0.5)；
+     - 未收录：返回 `found=false` + 「平台只讲有史料依据的故事，不编造内容」，不调用 LLM；
+     - 收录：以检索到的史料为唯一依据，用 STORY_SYSTEM 约束 DeepSeek「只组织语言、不创作」（不得添加史料之外的情节 / 对话 / 心理描写），开头注明「以下内容依据平台史料库整理，由 AI 讲述」，关键事实标 [n]；DeepSeek 不可用时降级为直接展示史料原文，仍不编造。
+  3) 依赖注入调整：restoration.py 新增 `import rag as rag_mod` 与 `from api import rag as rag_api`。
+- 合规：故事内容 100% 来自平台史料库，AIGC 参与部分显式标注「由 AI 讲述」；未收录人物直接拒讲。
+- 验证（curl 实测）：
+  - 「我爷爷」→ `found=false`，秒回，明确不编造；
+  - 「杨靖宇将军」→ `found=true`，正确匹配「杨靖宇」，故事含 [1]~[4] 引用 + 4 条人民网/共产党新闻网出处，结尾如实说明「史料库现有内容有限」。
+- 启动注意：必须在 `guangying/` 目录运行 `python -m uvicorn main:app --app-dir server --host 0.0.0.0 --port 8000`（--app-dir 为相对路径，工作目录不对会报 Could not import module "main"）。

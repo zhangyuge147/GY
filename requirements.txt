@@ -1,0 +1,28 @@
+# 《光影重生》环境依赖
+# 环境：conda env `guangying` (Python 3.10.22)，Miniconda 位于 D:\develop\miniconda3
+# 安装日期：2026-10-15
+#
+# 注意：本机显卡为 RTX 5060 Laptop（Blackwell 架构 sm_120），
+#      必须使用 cu128 的 PyTorch 构建；cu126 及以下不含 sm_120 内核，会报 "no kernel image is available"。
+#      torch / torchvision 通过本地 wheel 安装（国内直连 download.pytorch.org 不稳定）：
+#      pip install --no-cache-dir "D:\develop\wheels\torch-2.9.1+cu128-cp310-cp310-win_amd64.whl" ^
+#                                    "D:\develop\wheels\torchvision-0.24.1+cu128-cp310-cp310-win_amd64.whl"
+
+# ---- 深度学习框架（本地 wheel 安装，勿用 pip 在线装）----
+torch==2.9.1+cu128
+torchvision==0.24.1+cu128
+
+# ---- 后端服务 ----
+fastapi==0.143.1
+uvicorn==0.54.0
+pydantic==2.14.1
+python-dotenv==1.2.4
+
+# ---- 检索（RAG 知识库）----
+faiss-cpu==1.15.1
+requests==2.34.2
+
+# ---- 图像处理 ----
+opencv-python==5.0.0.93
+numpy==2.2.6
+pillow==12.3.0

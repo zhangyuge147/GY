@@ -1,0 +1,45 @@
+修复偏好提示词-修改说明（L45 精简版，2026-10-28）
+====================================================
+
+一、修改原因
+----------
+用户需求"修复时给提示词（如整体色调）"，经确认落地为 L45 精简版：前端
+偏好 chip（暖调/冷调/怀旧/鲜艳/淡雅/保持黑白）经 FormData 的 prompt
+字段上传，后端需把该字段透传给修复子进程 pipeline.py --prompt。
+后端只做透传与防滥用截断，不做语义解析（解析与执行在 restoration/
+prompt_tone.py，见 restoration\修复偏好提示词-修改说明.txt）。
+
+二、修改内容（本目录 1 个文件）
+----------
+api/restoration.py：
+1. _run_pipeline(image_path, hero_id, prompt)：
+   - 签名增加第三参 prompt；
+   - prompt 非空时追加子进程参数 --prompt <文本[:60]>——后端不做任何
+     语义判断，60 字截断防滥用（关键词匹配只需数个字）；
+2. POST /api/restore：
+   - 接口签名增加 prompt: str | None = Form(None)（multipart 表单
+     字段，与 file/hero_id 同级）；
+   - tasks.submit(_run_pipeline, dest, hero_id, prompt) 透传。
+不传 prompt 或传空串时行为与旧版完全一致（不带 --prompt 参数），
+历史调用零影响。
+
+三、验证
+----------
+1. py_compile 通过；
+2. 全链路 smoke（直接以子进程命令行验证透传口径，与 _run_pipeline
+   拼出的命令一致）：
+   a) --prompt 怀旧 → 子进程日志"[tone] 修复偏好：怀旧"，偏好色调在
+      上色步骤生效（Δa+2/Δb+7/饱和×0.82，人脸保护 2 框）；
+   b) --prompt 保持黑白 → "智能上色：关（偏好·保持黑白）"，DDColor
+      未加载；
+   c) --prompt "你好朋友" → "[tone] 未命中偏好关键词，直通"，行为与
+      旧版完全一致；
+3. "保持黑白"时 05_color/06_calib 帧不产出，_frames_for_stem 的 _u()
+   存在性检查返回 None，前端 activeFrames 过滤空帧，六步动画自动兼容
+   （无需改 config.py 的 STEP_ORDER 六步契约）。
+
+四、影响范围
+----------
+仅 /api/restore 一个接口增加可选字段；/api/heroes、/api/story、
+/api/restore/{task_id} 等其余接口零改动。相关注册见
+restoration\局限与精修清单.txt 【L45】。

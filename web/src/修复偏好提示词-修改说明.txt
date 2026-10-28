@@ -1,0 +1,51 @@
+修复偏好提示词-修改说明（L45 精简版，2026-10-28）
+====================================================
+
+一、修改原因
+----------
+用户需求"修复时给提示词（如整体色调）"，经确认落地为 L45 精简版：上传
+表单增加"修复偏好"chip 单选组（默认/暖调/冷调/怀旧/鲜艳/淡雅/保持黑
+白），点选后作为 prompt 表单字段随照片一起上传，由后端透传 pipeline
+--prompt 做 Lab 色调后处理（见 restoration\修复偏好提示词-修改说明.txt）。
+刻意不做自由文本输入框（词典外词汇无解析手段，静默忽略体验割裂；
+LLM 解析为二期），chip 点选所见即所得、离线可演示。
+
+二、修改内容（本目录 2 个文件）
+----------
+1. src/api/index.js：
+   - uploadRestore(file, heroId, prompt)：签名增加第三参 prompt；
+   - 非空时 fd.append('prompt', prompt)（multipart 字段，与
+     file/hero_id 同级）。
+
+2. src/views/Restore.vue：
+   - script：新增 promptPick ref（'' = 默认）与 toneOptions 常量
+     （7 项，key 与后端 restoration/prompt_tone.py 关键词词典精确
+     对齐）；resetUpload() 重置 promptPick；startUpload() 调
+     api.uploadRestore 时透传 promptPick；
+   - template：上传面板"照片人物（可选）"之后新增"修复偏好（可选）"
+     chip 组（role=radiogroup/radio，aria-checked 无障碍语义，风格与
+     模式切换胶囊按钮一致），下方追加两行说明：偏好只影响整体色调氛围、
+     选身份修复时以史料考据颜色为准、"保持黑白"= 只修复不上色；
+   - style：.upload__tones / .upload__tone / .upload__tone.is-active
+     胶囊样式，全部使用既有设计变量（--sp-*/--fs-*/--c-*/--t-fast）。
+
+三、与"照片人物"身份选择的组合规则
+----------
+两者独立可并存：身份选择触发考据校色（--calib，史实色），偏好只作用
+氛围层色调；后端执行顺序上考据校色在偏好之后，史实优先（红色平台的
+定位约束）。"保持黑白" + 英雄身份 = 黑白修复 + 落考据色板（直通副本）。
+
+四、验证
+----------
+1. npm run build（vite 6.4.5）通过：44 modules transformed，无编译
+   错误、无新增依赖；
+2. "保持黑白"时后端不产出 05_color/06_calib 帧，本页 activeFrames
+   computed 已有 f.url 过滤（既有逻辑，零改动），动画与前后对比自动
+   兼容；
+3. chip 不选（默认）不传 prompt 字段，与旧版请求完全一致。
+
+五、影响范围
+----------
+仅"修复我的照片"上传面板一处 UI + 一处 API 封装；英雄影像浏览、
+六步动画、前后对比、照片背后的故事等其余功能零改动。相关注册见
+restoration\局限与精修清单.txt 【L45】。
